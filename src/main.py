@@ -4,9 +4,18 @@ import tkinter as tk
 from tkinter import messagebox
 from datetime import datetime, timedelta
 
-TARGETS = {
-    "LeagueClient.exe",
+# Processes we detect to know League/Riot is trying to run
+DETECT_TARGETS = {
     "RiotClientServices.exe",
+    "LeagueClient.exe",
+    "LeagueClientUx.exe",
+    "LeagueClientUxRender.exe",
+}
+
+# Processes we actually block during delay
+BLOCK_TARGETS = {
+    "LeagueClient.exe",
+    "LeagueClientUx.exe",
 }
 
 LOG_FILE = "tiltguard_log.txt"
@@ -18,16 +27,17 @@ def log_event(event: str) -> None:
         f.write(f"{timestamp} - {event}\n")
 
 
-def get_running_process_names():
-    names = set()
-    for proc in psutil.process_iter(["name"]):
+def get_processes_by_name(names_set: set[str]) -> list[psutil.Process]:
+    """Return list of processes whose name matches one of names_set."""
+    matches = []
+    for proc in psutil.process_iter(["pid", "name"]):
         try:
             name = proc.info["name"]
-            if name:
-                names.add(name)
+            if name and name in names_set:
+                matches.append(proc)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
-    return names
+    return matches
 
 
 def show_interruption_popup() -> str:
@@ -40,10 +50,8 @@ def show_interruption_popup() -> str:
 
     root = tk.Tk()
     root.title("TiltGuard")
-    root.geometry("360x180")
+    root.geometry("380x190")
     root.resizable(False, False)
-
-    # Make it appear on top
     root.attributes("-topmost", True)
 
     label = tk.Label(
@@ -51,7 +59,7 @@ def show_interruption_popup() -> str:
         text="League/Riot detected.\nWhat do you want to do?",
         font=("Segoe UI", 12),
         justify="center",
-        pady=15,
+        pady=18,
     )
     label.pack()
 
@@ -66,13 +74,13 @@ def show_interruption_popup() -> str:
         result["choice"] = "play"
         root.destroy()
 
-    delay_btn = tk.Button(button_frame, text="Delay 15 minutes", width=16, command=choose_delay)
-    delay_btn.grid(row=0, column=0, padx=10)
+    tk.Button(button_frame, text="Delay 15 minutes", width=16, command=choose_delay).grid(
+        row=0, column=0, padx=10
+    )
+    tk.Button(button_frame, text="Play anyway", width=16, command=choose_play).grid(
+        row=0, column=1, padx=10
+    )
 
-    play_btn = tk.Button(button_frame, text="Play anyway", width=16, command=choose_play)
-    play_btn.grid(row=0, column=1, padx=10)
-
-    # If they close the window, treat it as "play anyway"
     def on_close():
         result["choice"] = "play"
         root.destroy()
@@ -83,40 +91,120 @@ def show_interruption_popup() -> str:
     return result["choice"] or "play"
 
 
+def show_delay_active_popup(minutes_left: int) -> None:
+    # Create a hidden root so messagebox works cleanly
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    messagebox.showinfo(
+        "TiltGuard",
+        f"Delay is active.\nTry again in ~{minutes_left} minute(s)."
+    )
+    root.destroy()
+
+
+def kill_process_tree(proc: psutil.Process) -> int:
+    """Kill a process and its children. Returns count killed."""
+    killed = 0
+    try:
+        for c in proc.children(recursive=True):
+            try:
+                c.kill()
+                killed += 1
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+
+        try:
+            proc.kill()
+            killed += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+    return killed
+
+
+def terminate_block_targets(debug_print: bool = False) -> int:
+    """Kill any running BLOCK_TARGETS. Returns total killed count."""
+    killed_total = 0
+    procs = get_processes_by_name(BLOCK_TARGETS)
+
+    if debug_print:
+        if procs:
+            print("Blocking:", [p.name() for p in procs])
+        else:
+            print("Blocking: (no matching processes found)")
+
+    for p in procs:
+        killed_total += kill_process_tree(p)
+
+    if killed_total > 0:
+        print(f"Blocked launch (killed {killed_total} process(es))")
+        log_event(f"Blocked launch (killed {killed_total})")
+
+    return killed_total
+
+
 def main():
-    print("TiltGuard running (with popup). Press Ctrl + C to stop.\n")
+    print("TiltGuard running (Delay enforced). Press Ctrl + C to stop.\n")
     log_event("TiltGuard started")
 
     detected_before = False
-    delay_until = None  # datetime when delay period ends
+    delay_until: datetime | None = None
+    last_block_popup_time: float = 0.0  # to avoid spamming popups
 
-    while True:
-        running = get_running_process_names()
-        detected_now = any(name in running for name in TARGETS)
+    try:
+        while True:
+            detected_now = len(get_processes_by_name(DETECT_TARGETS)) > 0
 
-        # If League just started:
-        if detected_now and not detected_before:
-            log_event("League/Riot detected (launch)")
-            choice = show_interruption_popup()
+            # Transition: not detected -> detected
+            if detected_now and not detected_before:
+                log_event("League/Riot detected (launch)")
 
-            if choice == "delay":
-                delay_until = datetime.now() + timedelta(minutes=15)
-                log_event("User chose DELAY 15 minutes")
-                print("Delay chosen: 15 minutes (not blocking yet).")
-                messagebox.showinfo("TiltGuard", "Delay started (15 minutes).\nBlocking comes next step.")
-            else:
-                log_event("User chose PLAY anyway")
-                print("Play anyway chosen.")
+                # If delay is active, enforce immediately
+                if delay_until is not None and datetime.now() < delay_until:
+                    killed = terminate_block_targets(debug_print=True)
 
-        # If delay is active, show remaining time in terminal (no blocking yet)
-        if delay_until is not None:
-            if datetime.now() >= delay_until:
-                log_event("Delay finished")
-                print("Delay finished.")
-                delay_until = None
+                    minutes_left = max(
+                        1,
+                        int((delay_until - datetime.now()).total_seconds() // 60)
+                    )
+                    log_event(f"Blocked launch during delay (killed={killed})")
 
-        detected_before = detected_now
-        time.sleep(1)
+                    # Throttle popup to at most once every 10 seconds
+                    now = time.time()
+                    if now - last_block_popup_time > 10:
+                        show_delay_active_popup(minutes_left)
+                        last_block_popup_time = now
+
+                else:
+                    # No active delay: ask the user
+                    choice = show_interruption_popup()
+                    if choice == "delay":
+                        delay_until = datetime.now() + timedelta(minutes=15)
+                        log_event("User chose DELAY 15 minutes")
+                        print("Delay chosen: 15 minutes. League will be closed during this period.")
+                    else:
+                        log_event("User chose PLAY anyway")
+                        print("Play anyway chosen.")
+
+            # Background enforcement while delay is active
+            if delay_until is not None:
+                if datetime.now() >= delay_until:
+                    log_event("Delay finished")
+                    print("Delay finished.")
+                    delay_until = None
+                else:
+                    terminate_block_targets(debug_print=False)
+
+            detected_before = detected_now
+            time.sleep(0.25)
+
+    except KeyboardInterrupt:
+        log_event("TiltGuard stopped")
+        print("\n[TiltGuard] Stopped.")
 
 
 if __name__ == "__main__":

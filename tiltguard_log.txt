@@ -4,3 +4,42 @@
 2026-01-18 17:25:21 - TiltGuard started
 2026-01-18 17:25:29 - League/Riot detected (launch)
 2026-01-18 17:25:52 - User chose DELAY 15 minutes
+2026-01-18 17:28:38 - TiltGuard started
+2026-01-18 17:28:38 - League/Riot detected (launch)
+2026-01-18 17:28:50 - User chose PLAY anyway
+2026-01-18 17:28:57 - TiltGuard started
+2026-01-18 17:28:57 - League/Riot detected (launch)
+2026-01-18 17:29:01 - User chose PLAY anyway
+2026-01-18 17:29:23 - TiltGuard started
+2026-01-18 17:29:29 - League/Riot detected (launch)
+2026-01-18 17:29:35 - User chose DELAY 15 minutes
+2026-01-18 17:29:41 - Blocked (background enforcement) killed=1
+2026-01-18 17:30:02 - Blocked (background enforcement) killed=1
+2026-01-18 17:30:24 - Blocked (background enforcement) killed=1
+2026-01-18 17:30:36 - Blocked (background enforcement) killed=1
+2026-01-18 17:30:42 - Blocked (background enforcement) killed=1
+2026-01-18 17:35:52 - TiltGuard started
+2026-01-18 17:35:52 - League/Riot detected (launch)
+2026-01-18 17:36:01 - User chose DELAY 15 minutes
+2026-01-18 17:37:00 - TiltGuard started
+2026-01-18 17:37:05 - League/Riot detected (launch)
+2026-01-18 17:37:18 - User chose DELAY 15 minutes
+2026-01-18 17:41:49 - TiltGuard started
+2026-01-18 17:41:57 - League/Riot detected (launch)
+2026-01-18 17:42:00 - User chose DELAY 15 minutes
+2026-01-18 17:42:09 - Blocked (background enforcement) killed=1
+2026-01-18 17:43:00 - Blocked (background enforcement) killed=3
+2026-01-18 17:48:50 - TiltGuard started
+2026-01-18 17:48:50 - League/Riot detected (launch)
+2026-01-18 17:48:55 - User chose DELAY 15 minutes
+2026-01-18 17:49:31 - Blocked (background enforcement) killed=4
+2026-01-18 17:49:42 - Blocked (background enforcement) killed=3
+2026-01-18 17:49:48 - Blocked (background enforcement) killed=2
+2026-01-18 17:49:54 - Blocked (background enforcement) killed=6
+2026-01-18 17:56:57 - TiltGuard started
+2026-01-18 17:56:59 - League/Riot detected (launch)
+2026-01-18 17:57:03 - User chose DELAY 15 minutes
+2026-01-18 17:57:10 - Blocked launch (killed 1)
+2026-01-18 17:57:30 - Blocked launch (killed 1)
+2026-01-18 17:57:36 - Blocked launch (killed 1)
+2026-01-18 17:58:07 - TiltGuard stopped
