@@ -1,0 +1,6 @@
+2026-01-18 17:24:56 - TiltGuard started
+2026-01-18 17:25:00 - TiltGuard started
+2026-01-18 17:25:05 - TiltGuard started
+2026-01-18 17:25:21 - TiltGuard started
+2026-01-18 17:25:29 - League/Riot detected (launch)
+2026-01-18 17:25:52 - User chose DELAY 15 minutes
